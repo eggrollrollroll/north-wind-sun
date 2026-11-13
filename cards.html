@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>遊戲卡牌 · 文生圖提示詞</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Plus+Jakarta+Sans:wght@500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#fff7ed', 100:'#ffedd5', 500:'#f97316', 600:'#ea580c', 700:'#c2410c' }
+          },
+          fontFamily: {
+            sans: ['"Noto Sans TC"', '"Plus Jakarta Sans"', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: "Noto Sans TC", "Plus Jakarta Sans", sans-serif; }
+    .prompt-box { white-space: pre-wrap; word-break: break-word; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen antialiased">
+  <div class="max-w-3xl mx-auto px-4 py-8 sm:py-12">
+    <header class="mb-8">
+      <a href="index.html" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 hover:text-brand-600 mb-4">
+        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> 回到首頁
+      </a>
+      <p class="text-xs font-bold tracking-widest text-brand-600 uppercase mb-2">Card illustration · Image prompts</p>
+      <h1 class="text-2xl sm:text-3xl font-black text-slate-900">遊戲卡牌 · 文生圖提示詞</h1>
+      <p class="mt-3 text-sm text-slate-600 leading-relaxed">
+        先複製「風格和版面」，再接上某個角色描述，一齊貼入 Canva；合共約 207–218 字元，應不會超過 Canva 字數限制。各段要可獨立複製，唔好把風格同角色合成一段嚟複製。
+      </p>
+    </header>
+
+    <section class="mb-8" aria-labelledby="styleHeading">
+      <h2 id="styleHeading" class="text-lg font-bold text-slate-900 mb-3">風格和版面</h2>
+      <article class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 sm:p-5">
+        <div class="flex items-center justify-between gap-2 mb-1.5">
+          <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide">文生圖提示詞 <span id="styleCount" class="font-medium normal-case text-slate-400"></span></h3>
+          <button type="button" id="copyStyle"
+            class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-colors cursor-pointer"
+            aria-label="複製風格和版面提示詞">
+            <i class="fa-regular fa-copy" aria-hidden="true"></i> 複製提示詞
+          </button>
+        </div>
+        <p id="stylePrompt" class="prompt-box text-sm text-slate-600 leading-relaxed bg-slate-50 border border-slate-100 rounded-xl p-3 font-sans"></p>
+      </article>
+    </section>
+
+    <section aria-labelledby="charsHeading">
+      <h2 id="charsHeading" class="text-lg font-bold text-slate-900 mb-1">角色外觀</h2>
+      <p class="text-sm text-slate-500 mb-3">每個角色有獨立複製按鈕。複製後，接在風格提示詞後面一齊貼入 Canva。</p>
+      <div id="charList" class="space-y-4"></div>
+    </section>
+  </div>
+
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm font-semibold px-4 py-2.5 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-200 z-50"></div>
+
+  <script>
+    const stylePrompt = "Official TCG illustration, slightly shiny foil look, ornate gold card border, empty top name banner, empty bottom stat and skill boxes, no logos, no text";
+
+    const characters = [
+      { title: "火狐", prompt: "cute fire fox, orange fur, flame tail, standing pose" },
+      { title: "水龜", prompt: "cute water turtle, blue shell, water splash, standing pose" },
+      { title: "草兔", prompt: "cute grass rabbit, leafy ears, chest flower, standing pose" },
+      { title: "電鳥", prompt: "cute electric bird, yellow feathers, spark wings, standing pose" }
+    ];
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.remove("opacity-0");
+      el.classList.add("opacity-100");
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => {
+        el.classList.remove("opacity-100");
+        el.classList.add("opacity-0");
+      }, 1600);
+    }
+
+    async function copyText(text, btn, okLabel) {
+      try {
+        await navigator.clipboard.writeText(text);
+        const old = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i> 已複製';
+        btn.classList.add("bg-emerald-600");
+        btn.classList.remove("bg-brand-600", "hover:bg-brand-700");
+        showToast(okLabel);
+        setTimeout(() => {
+          btn.innerHTML = old;
+          btn.classList.remove("bg-emerald-600");
+          btn.classList.add("bg-brand-600", "hover:bg-brand-700");
+        }, 1400);
+      } catch (e) {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand("copy");
+          showToast(okLabel);
+        } catch (err) {
+          showToast("複製失敗，請手動選取文字");
+        }
+        document.body.removeChild(ta);
+      }
+    }
+
+    document.getElementById("stylePrompt").textContent = stylePrompt;
+    document.getElementById("styleCount").textContent = "(" + stylePrompt.length + " 字元)";
+    document.getElementById("copyStyle").addEventListener("click", (e) => {
+      copyText(stylePrompt, e.currentTarget, "已複製風格和版面");
+    });
+
+    const list = document.getElementById("charList");
+    characters.forEach((c, i) => {
+      const combined = stylePrompt + ", " + c.prompt;
+      const card = document.createElement("article");
+      card.className = "bg-white border border-slate-200 rounded-2xl shadow-sm p-4 sm:p-5";
+      card.innerHTML = `
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <h3 class="text-base sm:text-lg font-bold text-slate-900">${c.title}</h3>
+          <button type="button" data-index="${i}"
+            class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-colors cursor-pointer"
+            aria-label="複製「${c.title}」角色提示詞">
+            <i class="fa-regular fa-copy" aria-hidden="true"></i> 複製提示詞
+          </button>
+        </div>
+        <p class="prompt-box text-sm text-slate-600 leading-relaxed bg-slate-50 border border-slate-100 rounded-xl p-3 font-sans">${c.prompt}</p>
+        <p class="mt-2 text-xs text-slate-400">角色 ${c.prompt.length} 字元 · 接上風格後約 ${combined.length} 字元</p>
+      `;
+      list.appendChild(card);
+    });
+
+    list.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-index]");
+      if (!btn) return;
+      const i = Number(btn.dataset.index);
+      copyText(characters[i].prompt, btn, "已複製「" + characters[i].title + "」提示詞");
+    });
+  </script>
+</body>
+</html>

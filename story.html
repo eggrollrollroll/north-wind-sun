@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>北風和太陽 · 文生圖提示詞</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Plus+Jakarta+Sans:wght@500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#fff7ed', 100:'#ffedd5', 500:'#f97316', 600:'#ea580c', 700:'#c2410c' }
+          },
+          fontFamily: {
+            sans: ['"Noto Sans TC"', '"Plus Jakarta Sans"', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: "Noto Sans TC", "Plus Jakarta Sans", sans-serif; }
+    .prompt-box { white-space: pre-wrap; word-break: break-word; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen antialiased">
+  <div class="max-w-3xl mx-auto px-4 py-8 sm:py-12">
+    <header class="mb-8">
+      <a href="index.html" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 hover:text-brand-600 mb-4">
+        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> 回到首頁
+      </a>
+      <p class="text-xs font-bold tracking-widest text-brand-600 uppercase mb-2">Aesop · Story + Image prompts</p>
+      <h1 class="text-2xl sm:text-3xl font-black text-slate-900">北風和太陽 · 繪本文字與提示詞</h1>
+      <p class="mt-2 text-sm text-slate-500">每格有「複製文字」同「複製提示詞」兩個獨立按鈕。提示詞為 Canva 短版（&lt;200 字元）。</p>
+    </header>
+
+    <div id="promptList" class="space-y-4"></div>
+
+    <p class="mt-8 text-[11px] text-slate-400 leading-relaxed">
+      四幅請在 Canva 揀同一個風格同同一個比例；對白／旁白可用「複製文字」貼去文字框。角色同風格字眼四格一致。
+    </p>
+  </div>
+
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm font-semibold px-4 py-2.5 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-200 z-50"></div>
+
+  <script>
+    const panels = [
+      {
+        title: "北風與太陽打賭",
+        story: "北風和太陽在天上爭論誰最厲害。它們看見一位穿紅外套的老伯伯，便打賭：「誰能讓他脫下外套，誰就贏！」",
+        prompt: "Blue cloud North Wind and smiling golden Sun argue in the sky; old man in red coat and brown hat walks below. Picture book watercolor, soft pastel, cute, no text"
+      },
+      {
+        title: "北風用力吹",
+        story: "北風先試。它呼—呼—地用力吹，樹都彎了腰。可是風越大，老伯伯就把外套拉得越緊。",
+        prompt: "Blue cloud North Wind blows hard, trees bend; old man in red coat and brown hat clutches his coat tightly. Picture book watercolor, soft pastel, cute, no text"
+      },
+      {
+        title: "太陽溫暖照耀",
+        story: "輪到太陽了。它微笑著，溫柔地發出陽光。老伯伯越來越熱，一邊抹汗，一邊解開外套。",
+        prompt: "Smiling golden Sun shines warmly; old man in red coat and brown hat wipes sweat, opening his coat. Picture book watercolor, soft pastel, cute, no text"
+      },
+      {
+        title: "太陽勝出",
+        story: "最後，老伯伯脫下外套，坐在樹蔭下休息。太陽贏了！北風明白了：溫和的力量，比強硬更有用。",
+        prompt: "Old man in white shirt and brown hat rests under a tree, red coat on his arm; golden Sun smiles, blue cloud North Wind looks shy. Picture book watercolor, soft pastel, cute, no text"
+      }
+    ];
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.remove("opacity-0");
+      el.classList.add("opacity-100");
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => {
+        el.classList.remove("opacity-100");
+        el.classList.add("opacity-0");
+      }, 1600);
+    }
+
+    async function copyText(text, btn, okLabel) {
+      try {
+        await navigator.clipboard.writeText(text);
+        const old = btn.innerHTML;
+        const wasBrand = btn.classList.contains("bg-brand-600");
+        const wasSlate = btn.classList.contains("bg-slate-700");
+        btn.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i> 已複製';
+        btn.classList.add("bg-emerald-600");
+        btn.classList.remove("bg-brand-600", "hover:bg-brand-700", "bg-slate-700", "hover:bg-slate-800");
+        showToast(okLabel);
+        setTimeout(() => {
+          btn.innerHTML = old;
+          btn.classList.remove("bg-emerald-600");
+          if (wasBrand) btn.classList.add("bg-brand-600", "hover:bg-brand-700");
+          if (wasSlate) btn.classList.add("bg-slate-700", "hover:bg-slate-800");
+        }, 1400);
+      } catch (e) {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand("copy");
+          showToast(okLabel);
+        } catch (err) {
+          showToast("複製失敗，請手動選取文字");
+        }
+        document.body.removeChild(ta);
+      }
+    }
+
+    const list = document.getElementById("promptList");
+    panels.forEach((p, i) => {
+      const card = document.createElement("article");
+      card.className = "bg-white border border-slate-200 rounded-2xl shadow-sm p-4 sm:p-5";
+      card.innerHTML = `
+        <div class="mb-4">
+          <span class="text-[10px] font-bold text-brand-600 bg-brand-50 border border-brand-100 px-2 py-0.5 rounded-md">第 ${i + 1} 格</span>
+          <h2 class="mt-1.5 text-base sm:text-lg font-bold text-slate-900">${p.title}</h2>
+        </div>
+
+        <div class="mb-4">
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide">繪本文字</h3>
+            <button type="button" data-kind="story" data-index="${i}"
+              class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer"
+              aria-label="複製「${p.title}」繪本文字">
+              <i class="fa-regular fa-copy" aria-hidden="true"></i> 複製文字
+            </button>
+          </div>
+          <p class="prompt-box text-sm text-slate-800 leading-relaxed bg-amber-50 border border-amber-100 rounded-xl p-3">${p.story}</p>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide">文生圖提示詞 <span class="font-medium normal-case text-slate-400">(${p.prompt.length} 字元)</span></h3>
+            <button type="button" data-kind="prompt" data-index="${i}"
+              class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-colors cursor-pointer"
+              aria-label="複製「${p.title}」提示詞">
+              <i class="fa-regular fa-copy" aria-hidden="true"></i> 複製提示詞
+            </button>
+          </div>
+          <p class="prompt-box text-sm text-slate-600 leading-relaxed bg-slate-50 border border-slate-100 rounded-xl p-3 font-sans">${p.prompt}</p>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+
+    list.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-index][data-kind]");
+      if (!btn) return;
+      const i = Number(btn.dataset.index);
+      const kind = btn.dataset.kind;
+      if (kind === "story") {
+        copyText(panels[i].story, btn, "已複製繪本文字");
+      } else {
+        copyText(panels[i].prompt, btn, "已複製提示詞");
+      }
+    });
+  </script>
+</body>
+</html>
